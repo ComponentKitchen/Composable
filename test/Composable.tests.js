@@ -1,4 +1,6 @@
-import Composable from "../src/Composable";
+import { assert } from 'chai';
+
+import Composable from '../src/Composable';
 
 
 /* Sample classes used by the test suite */
@@ -64,9 +66,9 @@ Composable.decorate.call(MethodMixinCallsSuper.prototype, {
 });
 
 
-suite("Composable", () => {
+describe("Composable", () => {
 
-  test("can extend class with ES6 class syntax", () => {
+  it("can extend class with ES6 class syntax", () => {
     class Subclass extends ExampleBase {
       get bar() {
         return true;
@@ -77,7 +79,7 @@ suite("Composable", () => {
     assert.equal(instance.bar, true);
   });
 
-  test("can extend class with ES5-compatible .compose() syntax", () => {
+  it("can extend class with ES5-compatible .compose() syntax", () => {
     let Subclass = ExampleBase.compose({
       bar: true
     });
@@ -86,7 +88,7 @@ suite("Composable", () => {
     assert.equal(instance.bar, true);
   });
 
-  test("class decorators applied to indicated members", () => {
+  it("class decorators applied to indicated members", () => {
     class Base extends Composable {
       method() {}
     }
@@ -99,7 +101,7 @@ suite("Composable", () => {
     assert(Base.prototype.method.decorated);
   })
 
-  test("class mixin can define a property", () => {
+  it("class mixin can define a property", () => {
     // Make sure base class works as expected first.
     let baseInstance = new ExampleBase();
     assert(!baseInstance.baseGetterInvoked);
@@ -120,7 +122,7 @@ suite("Composable", () => {
     assert(instance.baseGetterInvoked);
   });
 
-  test("class mixin can define a method; base method is invoked too", () => {
+  it("class mixin can define a method; base method is invoked too", () => {
     let Subclass = ExampleBase.compose(MethodMixin);
     let instance = new Subclass();
     let result = instance.method();
@@ -129,7 +131,7 @@ suite("Composable", () => {
     assert(instance.baseMethodInvoked);
   });
 
-  test("rule() decorator just records a decorator for later use", () => {
+  it("rule() decorator just records a decorator for later use", () => {
     class Subclass extends Composable {
       method() {}
     }
@@ -140,7 +142,7 @@ suite("Composable", () => {
     assert.equal(Subclass.prototype.method._compositionRule, decorator);
   });
 
-  test("mixin method can use super() to invoke base class implementation", () => {
+  it("mixin method can use super() to invoke base class implementation", () => {
     let Subclass = ExampleBase.compose(MethodMixinCallsSuper);
     let instance = new Subclass();
     let result = instance.method();
@@ -149,7 +151,7 @@ suite("Composable", () => {
     assert(instance.baseMethodInvoked);
   });
 
-  test("multiple mixins can be applied in one call", () => {
+  it("multiple mixins can be applied in one call", () => {
     let Subclass = ExampleBase.compose(
       PropertyMixin,
       MethodMixin
@@ -165,7 +167,7 @@ suite("Composable", () => {
     assert(instance.mixinMethodInvoked);
   });
 
-  test("can extend a plain object", () => {
+  it("can extend a plain object", () => {
     let obj = {
       method() {
         return 'result';
@@ -179,7 +181,7 @@ suite("Composable", () => {
     assert.equal(composed.property, 'value');
   });
 
-  test("mixin can has multiple levels of inheritance", () => {
+  it("mixin can has multiple levels of inheritance", () => {
     class MixinSubclass extends MethodMixin {
       method() {
         let superMethod = this.MixinSubclass.super.method;
@@ -196,7 +198,7 @@ suite("Composable", () => {
     assert(instance.mixinSubclassMethodInvoked);
   });
 
-  test("mixin property can reference superclass' property", () => {
+  it("mixin property can reference superclass' property", () => {
     class PropertyMixin {
       get property() {
         let superPrototype = this.PropertyMixin.super;
