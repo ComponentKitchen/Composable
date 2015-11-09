@@ -4,15 +4,24 @@
 
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
-  <link href="../node_modules/mocha/mocha.css">
-  <script src="../node_modules/mocha/mocha.js"></script>
-  <script src="../dist/test/tests.js"></script>
   <title>Test Suite - Composable</title>
 
+  <link href="../node_modules/mocha/mocha.css">
+  <script src="../node_modules/mocha/mocha.js"></script>
+  <script>
+    mocha.setup('bdd');
+  </script>
+
+  <script src="../dist/test/tests.js"></script>
+  
 </head>
 
 <body>
   <div id="mocha"></div>
+  <script>
+    mocha.checkLeaks();
+    mocha.run();
+  </script>
 </body>
 
 </html>
