@@ -18,13 +18,8 @@ module.exports = function (grunt) {
 
       dist: {
         files: {
-          'dist/Composable.js': 'src/*.js'
-        }
-      },
-
-      test: {
-        files: {
-          'build/tests.js': 'test/*.js'
+          'dist/Composable.js': 'src/*.js',
+          'dist/test/tests.js': 'test/*.js'
         }
       },
 
@@ -43,7 +38,7 @@ module.exports = function (grunt) {
   });
 
   grunt.registerTask('default', ['build']);
-  grunt.registerTask('build', ['browserify:dist', 'browserify:test']);
+  grunt.registerTask('build', ['browserify']);
   grunt.registerTask('watch', ['browserify:watch']);
 
 };
