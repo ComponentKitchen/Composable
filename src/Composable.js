@@ -38,6 +38,31 @@ export default class Composable {
     return mixins.reduce(compose, this);
   }
 
+  /*
+   * Decorate "this" with the indicated decorators. The latter should be a
+   * dictionary mapping property names to (proposed) ES7-compliant decorators.
+   * This allows the use of decorators in ES6/5. Example, this ES7 code:
+   *
+   *   class Foo {
+   *      @decorate(customDecorator)
+   *      bar() {}
+   *   }
+   *
+   * can be written using the decorate() method as:
+   *
+   *   class Foo {
+   *      bar() {}
+   *   }
+   *   Composable.decorate.call(Foo.prototype, { bar: customDecorator });
+   *
+   * Or, if Foo derives from Composable already, this can be shorter:
+   *
+   *   class Foo extends Composable {
+   *      bar() {}
+   *   }
+   *   Foo.prototype.decorate({ bar: customDecorator });
+   *
+   */
   static decorate(decorators) {
     for (let key in decorators) {
       let decorator = decorators[key];
@@ -47,16 +72,21 @@ export default class Composable {
     }
   }
 
+  /*
+   * Decorates the prototype of a class derived from Composable.
+   * See notes for the static decorate() method.
+   */
   decorate(decorators) {
     Composable.decorate.call(this, decorators);
   }
 
-  // Decorator for annotating how a class member should be composed later.
-  // This takes a decorator that will be run at *composition* time.
-  // For now, this can only be applied to methods.
+  /*
+   * Decorator for annotating how a class member should be composed later.
+   * This takes a decorator that will be run at *composition* time.
+   * For now, this can only be applied to methods.
+   */
   static rule(decorator) {
-    // We return a decorator that just adds the decorator given above to the
-    // member.
+    // Return a decorator that records the given decorator on the member itself.
     return function(target, key, descriptor) {
       // TODO: Use a Symbol instead of a string property name to save this.
       descriptor.value._compositionRule = decorator;
