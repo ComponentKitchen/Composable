@@ -145,10 +145,7 @@ Composable.prototype.super = Object.prototype;
 
 
 // Composition rules for standard object members.
-Composable.prototype.compositionRules = {
-  constructor: Composable.override,
-  toString: Composable.override,
-};
+Composable.prototype.compositionRules = {};
 
 
 // Properties defined by Function that we don't want to mixin.
