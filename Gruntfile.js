@@ -37,7 +37,12 @@ module.exports = function (grunt) {
 
   });
 
-  grunt.registerTask('default', ['build']);
+  grunt.registerTask('default', function() {
+    grunt.log.writeln('grunt commands this project supports:\n');
+    grunt.log.writeln('  grunt build');
+    grunt.log.writeln('  grunt watch');
+  });
+
   grunt.registerTask('build', ['browserify']);
   grunt.registerTask('watch', ['browserify:watch']);
 
