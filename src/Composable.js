@@ -51,7 +51,7 @@ export default class Composable {
     Composable.decorate.call(this, decorators);
   }
 
-  // Decorate for annotating how a class member should be composed later.
+  // Decorator for annotating how a class member should be composed later.
   // This takes a decorator that will be run at *composition* time.
   // For now, this can only be applied to methods.
   static rule(decorator) {
