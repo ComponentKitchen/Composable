@@ -24,7 +24,8 @@ export default class Composable {
    *
    *   MyBaseClass.compose(Mixin1).compose(Mixin2).compose(Mixin3)
    *
-   * This method can be statically invoked to extend plain objects:
+   * This method can be statically invoked to extend plain objects or classes
+   * that don't inherit from this class:
    *
    *   let extended = Composable.extend.call(obj1, obj2);
    *
@@ -120,11 +121,37 @@ Composable.prototype.compositionRules = {
 };
 
 
+// Properties defined by Function that we don't want to mixin.
+// We'd prefer to get these by interrogating Function itself, but WebKit
+// functions have some properties (arguments and caller) which are not returned
+// by Object.getOwnPropertyNames(Function).
+const NON_MIXABLE_FUNCTION_PROPERTIES = [
+  'arguments',
+  'caller',
+  'length',
+  'name',
+  'prototype'
+];
+
+// Properties defined by Object that we don't want to mixin.
+const NON_MIXABLE_OBJECT_PROPERTIES = [
+  'constructor'
+];
+
+
+/*
+ * Apply the composition rules in effect for the given object, which lies at
+ * the tip of a prototype chain. This looks for conflicts between the object's
+ * own properties (and methods), and identically-named properties (methods)
+ * further up the prototype chain. Conflicts are resolved with rules defined by
+ * the affect members.
+ */
 function applyCompositionRules(obj) {
   let base = Object.getPrototypeOf(obj);
+  // For each property name, see if the base has a property with the same name.
   Object.getOwnPropertyNames(obj).forEach(name => {
     if (name in base) {
-      // Base also implements a member with the same name; need to combine.
+      // Base does implement a member with the same name; need to combine.
       let descriptor = Object.getOwnPropertyDescriptor(obj, name);
       let rule = descriptor.value && descriptor.value._compositionRule;
       if (!rule) {
@@ -132,6 +159,7 @@ function applyCompositionRules(obj) {
         rule = obj.compositionRules[name];
       }
       if (!rule) {
+        // See if we have a default rule for this kind of member.
         rule = getDefaultCompositionRule(descriptor);
       }
       // "override" is a known no-op, so we don't bother trying to redefine the
@@ -147,6 +175,7 @@ function applyCompositionRules(obj) {
 
 /*
  * Copy the given properties/methods to the target.
+ * Return the updated target.
  */
 function copyOwnProperties(source, target, ignorePropertyNames = []) {
   Object.getOwnPropertyNames(source).forEach(name => {
@@ -165,11 +194,8 @@ function copyOwnProperties(source, target, ignorePropertyNames = []) {
  */
 function compose(base, mixin) {
 
-  // Check whether the base and mixin are classes or plain objects.
-  let baseIsClass = isClass(base);
+  // See if the *mixin* has a base class/prototype of its own.
   let mixinIsClass = isClass(mixin);
-
-  // Check to see if the *mixin* has a base class/prototype of its own.
   let mixinBase = mixinIsClass ?
     Object.getPrototypeOf(mixin.prototype).constructor :
     Object.getPrototypeOf(mixin);
@@ -183,58 +209,29 @@ function compose(base, mixin) {
   }
 
   // Create the extended object we're going to return as a result.
-  let result;
-  if (baseIsClass) {
-    // Create a subclass of base. Once WebKit supports HTMLElement as a real
-    // class, we can just say:
-    //
-    //   class subclass extends base {}
-    //
-    // However, until that's resolved, we have to construct the class ourselves.
-    result = function subclass() {};
-    Object.setPrototypeOf(result, base);
-    Object.setPrototypeOf(result.prototype, base.prototype);
-  } else {
-    // Create a plain object that simply uses the base as a prototype.
-    result = Object.create(base);
-  }
+  let baseIsClass = isClass(base);
+  let result = baseIsClass ?
+    createSubclass(base) :
+    Object.create(base);
 
-  let source;
+  // The "target" here is the target of our property/method composition rules.
   let target;
   if (baseIsClass && mixinIsClass) {
-    // Properties defined by Function.
-    // We'd prefer to get by interrogating Function itself, but WebKit functions
-    // have some properties (arguments and caller) which are not returned by
-    // Object.getOwnPropertyNames(Function).
-    const FUNCTION_PROPERTIES = [
-      'arguments',
-      'caller',
-      'length',
-      'name',
-      'prototype'
-    ];
-    // Extending a class with a class.
-    // We'll copy instance members in a moment, but first copy static members.
-    copyOwnProperties(mixin, result, FUNCTION_PROPERTIES);
-    source = mixin.prototype;
-    target = result.prototype;
+    // Extending class with class: copy static members, then prototype members.
+    copyOwnProperties(mixin, result, NON_MIXABLE_FUNCTION_PROPERTIES);
+    target = copyOwnProperties(mixin.prototype, result.prototype, NON_MIXABLE_OBJECT_PROPERTIES);
   } else if (!baseIsClass && mixinIsClass) {
-    // Extending a plain object with a class.
-    // Copy prototype methods directly to result.
-    source = mixin.prototype;
-    target = result;
+    // Extending plain object with class: copy prototype methods to result.
+    target = copyOwnProperties(mixin.prototype, result, NON_MIXABLE_FUNCTION_PROPERTIES);
   } else if (baseIsClass && !mixinIsClass) {
-    // Extending class with plain object.
-    // Copy mixin to result prototype.
-    source = mixin;
-    target = result.prototype;
+    // Extending class with plain object: copy mixin to result prototype.
+    target = copyOwnProperties(mixin, result.prototype, NON_MIXABLE_OBJECT_PROPERTIES);
   } else {
-    // Extending a plain object with a plain object.
-    source = mixin;
-    target = result;
+    // Extending plain object with plain object: copy former to latter.
+    target = copyOwnProperties(mixin, result, NON_MIXABLE_OBJECT_PROPERTIES);
   }
-  copyOwnProperties(source, target, ['constructor']);
 
+  // Apply the composition rules in effect at the target.
   applyCompositionRules(target);
 
   if (mixin.name) {
@@ -250,22 +247,49 @@ function compose(base, mixin) {
   return result;
 }
 
+
+/*
+ * Return a new subclass of the given base class.
+ */
+function createSubclass(base) {
+  // Once WebKit supports HTMLElement as a real class, we can just say:
+  //
+  //   class subclass extends base {}
+  //
+  // However, until that's resolved, we just construct the class ourselves.
+  function subclass() {};
+  Object.setPrototypeOf(subclass, base);
+  Object.setPrototypeOf(subclass.prototype, base.prototype);
+  return subclass;
+}
+
+
+/*
+ * If the given property descriptor is of a type that has a default composition
+ * rule, return that rule.
+ */
 function getDefaultCompositionRule(descriptor) {
   if (typeof descriptor.value === 'function') {
+    // Method
     return Composable.rules.propagateFunction;
-  } else if (typeof descriptor.get === 'function' || typeof descriptor.set === 'function') {
-    // Property with getter and/or setter.
+  } else if (typeof descriptor.get === 'function'
+      || typeof descriptor.set === 'function') {
+    // Property with getter and/or setter
     return Composable.rules.propagateProperty;
   }
   return null;
 }
 
-// Return true if c is a JavaScript class.
-// We use this test because, on WebKit, classes like HTMLElement are special,
-// and are not instances of Function. To handle that case, we use a looser
-// definition: an object is a class if it has a prototype, and that prototype
-// has a constructor that is the original object. This condition holds true even
-// for HTMLElement on WebKit.
+
+/*
+ * Return true if c is a JavaScript class.
+ *
+ * We use this test because, on WebKit, classes like HTMLElement are special,
+ * and are not instances of Function. To handle that case, we use a looser
+ * definition: an object is a class if it has a prototype, and that prototype
+ * has a constructor that is the original object. This condition holds true even
+ * for HTMLElement on WebKit.
+ */
 function isClass(c) {
   return typeof c === 'function' ||                   // Standard
       (c.prototype && c.prototype.constructor === c); // HTMLElement in WebKit
