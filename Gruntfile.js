@@ -26,7 +26,7 @@ module.exports = function (grunt) {
       watch: {
         files: {
           'dist/Composable.js': 'src/*.js',
-          'build/tests.js': 'test/*.js'
+          'dist/test/tests.js': 'test/*.js'
         },
         options: {
           keepAlive: true,
