@@ -54,7 +54,7 @@ Composable.decorate.call(MethodMixinOverride.prototype, {
 /* Mixin with method that invokes and uses base implementation if present */
 class MethodMixinCallsSuper {
   method() {
-    let base = this.MethodMixinCallsSuper.super.method;
+    let base = this.prototypes.MethodMixinCallsSuper.super.method;
     let result = base ? base.call(this) + ' ' : '';
     result += 'MethodMixinCallsSuper';
     this.mixinMethodInvoked = true;
@@ -222,7 +222,7 @@ describe("Composable", () => {
   it("supports mixins with multiple levels of inheritance", () => {
     class MixinSubclass extends MethodMixin {
       method() {
-        let superMethod = this.MixinSubclass.super.method;
+        let superMethod = this.prototypes.MixinSubclass.super.method;
         if (superMethod) {
           superMethod.call(this);
         }
@@ -239,7 +239,7 @@ describe("Composable", () => {
   it("lets a mixin property reference superclass' property", () => {
     class PropertyMixin {
       get property() {
-        let superPrototype = this.PropertyMixin.super;
+        let superPrototype = this.prototypes.PropertyMixin.super;
         let descriptor = superPrototype && Object.getOwnPropertyDescriptor(superPrototype, 'property');
         return (descriptor) ?
           descriptor.get.call(this) :

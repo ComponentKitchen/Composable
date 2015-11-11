@@ -108,13 +108,11 @@ Composable.rules = CompositionRules;
 
 
 /*
- * All Composable-created objects keep references to the mixins that were
- * applied to create them. When a *named* mixin is applied to the prototype
- * chain, the resulting object (or, for a class, the class' prototype) will
- * have a new member with that name that points back to the same object.
- * That facility is useful when dealing with chains that have been extended
- * more than once, as an mixin's name is sufficient to retrieve a reference
- * to that point in the prototype chain.
+ * All Composable objects have a "prototypes" key that keeps references to the
+ * mixins that were applied along the prototype chain. When a *named* mixin is
+ * applied to the prototype chain, the resulting object (or, for a class, the
+ * class' prototype) will have a "prototypes" value for that name that points
+ * back to the mixin. That is, a mixin can get a pointer to itself in the chain.
  *
  * A single mixin can be applied to multiple prototype chains -- the name
  * refers to the prototype on *this particular prototype chain* that was added
@@ -122,7 +120,9 @@ Composable.rules = CompositionRules;
  * prototype, most often in combination with "super" (see below) in order to
  * invoke superclass behavior.
  */
-Composable.prototype.Composable = Composable.prototype;
+Composable.prototype.prototypes = {
+  Composable: Composable.prototype
+};
 
 /*
  * All Composable-created objects have a "super" property that references the
@@ -136,8 +136,8 @@ Composable.prototype.Composable = Composable.prototype;
  * E.g.:
  *   class Mixin {
  *     foo() {
- *       if (this.Mixin.super.foo) {
- *         this.Mixin.super.foo.call(this); // Invoke superclass' foo()
+ *       if (this.protoypes.Mixin.super.foo) {
+ *         this.prototypes.Mixin.super.foo.call(this); // Invoke superclass' foo()
  *       }
  *       // Do Mixin-specific work here...
  *     }
@@ -151,7 +151,8 @@ Composable.prototype.super = Object.prototype;
 // Composition rules for standard object members.
 Composable.prototype.compositionRules = {
   '__method__': Composable.rules.propagateFunction,
-  '__property__': Composable.rules.propagateProperty
+  '__property__': Composable.rules.propagateProperty,
+  'prototypes': Composable.rules.chainPrototypes
 };
 
 
@@ -199,7 +200,8 @@ function applyCompositionRules(obj) {
       let rule = ownCompositionRules[name]    // object itself
           || inheritedCompositionRules[name]  // inherited rules for name
           || inheritedCompositionRules[key]   // inherited rules generally
-          || defaultCompositionRules[key];    // default rules
+          || defaultCompositionRules[name]    // default rules for name
+          || defaultCompositionRules[key];    // default rules generally
 
       // "override" is a known no-op, so we don't bother trying to redefine the
       // property.
@@ -270,18 +272,20 @@ function compose(base, mixin) {
     target = copyOwnProperties(mixin, result, NON_MIXABLE_OBJECT_PROPERTIES);
   }
 
-  // Apply the composition rules in effect at the target.
-  applyCompositionRules(target);
-
   if (mixin.name) {
     // Use the mixin's name (usually the name of a class' constructor) to
-    // save a reference back to the newly-created object in the prototype chain.
-    target[mixin.name] = target;
+    // save a reference back to the tip of the newly-extended prototype chain.
+    // See notes at Composable's "prototypes" property.
+    target.prototypes = {};
+    target.prototypes[mixin.name] = target;
 
     // Save a reference to the superclass/super-object. See the comments on
     // Composable's "super" property.
     target.super = baseIsClass ? base.prototype : base;
   }
+
+  // Apply the composition rules in effect at the target.
+  applyCompositionRules(target);
 
   return result;
 }

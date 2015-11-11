@@ -16,6 +16,20 @@ export function composeFunction(function1, function2) {
 
 
 /*
+ * Combinator that sets the prototype of a mixin property value to be the
+ * corresponding value on the base. This effectively does a shallow merge of
+ * of the properties, without copying any information.
+ */
+export function chainPrototypes(target, key, descriptor) {
+  let mixinValue = descriptor.value;
+  let base = Object.getPrototypeOf(target);
+  let baseDescriptor = getPropertyDescriptor(base, key);
+  let baseValue = baseDescriptor.value;
+  Object.setPrototypeOf(mixinValue, baseValue);
+}
+
+
+/*
  * Perform a deep merge of a mixin property on top of a base property.
  */
 // export function deepMerge(target, key, descriptor) {
