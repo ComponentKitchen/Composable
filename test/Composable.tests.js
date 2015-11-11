@@ -39,17 +39,6 @@ class MethodMixin {
   }
 }
 
-/* Mixin that overrides a base method */
-class MethodMixinOverride {
-  method() {
-    this.mixinMethodInvoked = true;
-    return 'MethodMixin';
-  }
-}
-Composable.decorate.call(MethodMixinOverride.prototype, {
-  method: Composable.rule(Composable.rules.override)
-});
-
 
 /* Mixin with method that invokes and uses base implementation if present */
 class MethodMixinCallsSuper {
@@ -254,6 +243,20 @@ describe("Composable", () => {
     Subclass = Subclass.compose(PropertyMixin);
     let instance = new Subclass();
     assert.equal(instance.property, 'Subclass');
+  });
+
+  it("lets a subclass define inheritable composition rules", () => {
+    class Base extends Composable {};
+    Base.prototype.compositionRules = {
+      // From this point on prototype chain on down, methods named "method"
+      // should override.
+      method: Composable.rules.override
+    };
+    let Subclass = Base.compose(MethodMixin);
+    let instance = new Subclass();
+    instance.method();
+    assert(!instance.baseMethodInvoked); // Overridden, so never invoked.
+    assert(instance.mixinMethodInvoked);
   });
 
 });

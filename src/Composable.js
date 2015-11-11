@@ -152,6 +152,7 @@ Composable.prototype.super = Object.prototype;
 Composable.prototype.compositionRules = {
   '__method__': Composable.rules.propagateFunction,
   '__property__': Composable.rules.propagateProperty,
+  'compositionRules': Composable.rules.chainPrototypes,
   'prototypes': Composable.rules.chainPrototypes
 };
 
