@@ -89,7 +89,11 @@ export default class Composable {
     // Return a decorator that records the given decorator on the member itself.
     return function(target, key, descriptor) {
       // TODO: Use a Symbol instead of a string property name to save this.
-      descriptor.value._compositionRule = decorator;
+      // descriptor.value._compositionRule = decorator;
+      if (!target._compositionRules) {
+        target._compositionRules = {};
+      }
+      target._compositionRules[key] = decorator;
     }
   }
 
@@ -174,21 +178,23 @@ const NON_MIXABLE_OBJECT_PROPERTIES = [
  * the affect members.
  */
 function applyCompositionRules(obj) {
-  let base = Object.getPrototypeOf(obj);
+  let ownCompositionRules = obj.hasOwnProperty('_compositionRules') ?
+    obj._compositionRules :
+    {};
+  let inheritedCompositionRules = obj.compositionRules;
+
   // For each property name, see if the base has a property with the same name.
+  let base = Object.getPrototypeOf(obj);
   Object.getOwnPropertyNames(obj).forEach(name => {
-    if (name in base) {
+    if (name in base && NON_MIXABLE_OBJECT_PROPERTIES.indexOf(name) < 0) {
       // Base does implement a member with the same name; need to combine.
       let descriptor = Object.getOwnPropertyDescriptor(obj, name);
-      let rule = descriptor.value && descriptor.value._compositionRule;
-      if (!rule) {
-        // See if prototype chain has a rule for this member.
-        rule = obj.compositionRules[name];
-      }
-      if (!rule) {
-        // See if we have a default rule for this kind of member.
-        rule = getDefaultCompositionRule(descriptor);
-      }
+
+      // See if this property has a rule associated with it, checking 3 places:
+      let rule = ownCompositionRules[name]          // 1) object itself
+          || inheritedCompositionRules[name]        // 2) inherited rules
+          || getDefaultCompositionRule(descriptor); // 3) global default rules
+
       // "override" is a known no-op, so we don't bother trying to redefine the
       // property.
       if (rule && rule !== Composable.override) {
