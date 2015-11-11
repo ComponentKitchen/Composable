@@ -152,21 +152,33 @@ describe("Composable", () => {
     assert.equal(instance.method(), 'Mixin Decorator ExampleBase');
   });
 
-  // it("provides a @rule decorator to record a property composition rule", () => {
-  //   class Subclass extends Composable {
-  //     get property() {
-  //       return 'Subclass';
-  //     }
-  //   }
-  //   function decorator(target, key, descriptor) {
-  //     descriptor.value = 'Decorator';
-  //   }
-  //   Subclass.prototype.decorate({
-  //     property: Composable.rule(decorator)
-  //   });
-  //   let Subclass = ExampleBase.compose(Mixin);
-  //   assert.equal(Subclass.prototype.method._compositionRule, decorator);
-  // });
+  it("provides a @rule decorator to record a property composition rule", () => {
+    class Mixin {
+      get property() {
+        return 'Mixin';
+      }
+    }
+    function decorator(target, key, descriptor) {
+      let mixinGetter = descriptor.get;
+      let base = Object.getPrototypeOf(target);
+      let baseDescriptor = Composable.rules.getPropertyDescriptor(base, key);
+      let baseGetter = baseDescriptor.get;
+      let baseSetter = baseDescriptor.set;
+      descriptor.get = function() {
+        return mixinGetter.call(this) + ' Decorator ' + baseGetter.call(this);
+      };
+      descriptor.set = function(value) {
+        baseSetter.call(this, value);
+      }
+    }
+    Composable.decorate.call(Mixin.prototype, {
+      property: Composable.rule(decorator)
+    });
+    let Subclass = ExampleBase.compose(Mixin);
+    let instance = new Subclass();
+    instance.property = 'value';
+    assert.equal(instance.property, 'Mixin Decorator value');
+  });
 
   it("lets a mixin method use super() to invoke base class implementation", () => {
     let Subclass = ExampleBase.compose(MethodMixinCallsSuper);
