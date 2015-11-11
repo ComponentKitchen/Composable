@@ -149,7 +149,10 @@ Composable.prototype.super = Object.prototype;
 
 
 // Composition rules for standard object members.
-Composable.prototype.compositionRules = {};
+Composable.prototype.compositionRules = {
+  '__method__': Composable.rules.propagateFunction,
+  '__property__': Composable.rules.propagateProperty
+};
 
 
 // Properties defined by Function that we don't want to mixin.
@@ -182,6 +185,7 @@ function applyCompositionRules(obj) {
     obj._compositionRules :
     {};
   let inheritedCompositionRules = obj.compositionRules;
+  let defaultCompositionRules = Composable.prototype.compositionRules;
 
   // For each property name, see if the base has a property with the same name.
   let base = Object.getPrototypeOf(obj);
@@ -189,15 +193,17 @@ function applyCompositionRules(obj) {
     if (name in base && NON_MIXABLE_OBJECT_PROPERTIES.indexOf(name) < 0) {
       // Base does implement a member with the same name; need to combine.
       let descriptor = Object.getOwnPropertyDescriptor(obj, name);
+      let key = getGeneralDescriptorKey(descriptor);
 
-      // See if this property has a rule associated with it, checking 3 places:
-      let rule = ownCompositionRules[name]          // 1) object itself
-          || inheritedCompositionRules[name]        // 2) inherited rules
-          || getDefaultCompositionRule(descriptor); // 3) global default rules
+      // See if this property has a rule associated with it, checking:
+      let rule = ownCompositionRules[name]    // object itself
+          || inheritedCompositionRules[name]  // inherited rules for name
+          || inheritedCompositionRules[key]   // inherited rules generally
+          || defaultCompositionRules[key];    // default rules
 
       // "override" is a known no-op, so we don't bother trying to redefine the
       // property.
-      if (rule && rule !== Composable.override) {
+      if (rule && rule !== Composable.rules.override) {
         rule(obj, name, descriptor);
         Object.defineProperty(obj, name, descriptor);
       }
@@ -298,17 +304,16 @@ function createSubclass(base) {
 
 
 /*
- * If the given property descriptor is of a type that has a default composition
- * rule, return that rule.
+ * Examine the descriptor to determine which rule key applies.
  */
-function getDefaultCompositionRule(descriptor) {
+function getGeneralDescriptorKey(descriptor) {
   if (typeof descriptor.value === 'function') {
     // Method
-    return Composable.rules.propagateFunction;
+    return '__method__';
   } else if (typeof descriptor.get === 'function'
       || typeof descriptor.set === 'function') {
     // Property with getter and/or setter
-    return Composable.rules.propagateProperty;
+    return '__property__';
   }
   return null;
 }
