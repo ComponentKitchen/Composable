@@ -150,8 +150,8 @@ Composable.prototype.super = Object.prototype;
 
 // Composition rules for standard object members.
 Composable.prototype.compositionRules = {
-  '__method__': Composable.rules.propagateFunction,
-  '__property__': Composable.rules.propagateProperty,
+  '__method__': Composable.rules.baseMethodFirst,
+  '__property__': Composable.rules.baseSetterFirst,
   'compositionRules': Composable.rules.chainPrototypes,
   'prototypes': Composable.rules.chainPrototypes
 };
