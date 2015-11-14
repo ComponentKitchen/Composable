@@ -100,7 +100,7 @@ export function preferMixinResult(target, key, descriptor) {
 /*
  * Default rule for composing methods: invoke base first, then mixin.
  */
-export function propagateFunction(target, key, descriptor) {
+export function baseMethodFirst(target, key, descriptor) {
   let mixinImplementation = descriptor.value;
   let baseImplementation = Object.getPrototypeOf(target)[key];
   descriptor.value = composeFunction(baseImplementation, mixinImplementation);
@@ -116,7 +116,7 @@ export function propagateFunction(target, key, descriptor) {
  * invokes the base getter. Similarly, if the mixin just defines a getter,
  * we have to supply a default setter.
  */
-export function propagateProperty(target, key, descriptor) {
+export function baseSetterFirst(target, key, descriptor) {
   let base = Object.getPrototypeOf(target);
   let baseDescriptor = getPropertyDescriptor(base, key);
   if (descriptor.get && !descriptor.set && baseDescriptor.set) {
