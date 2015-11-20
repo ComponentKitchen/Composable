@@ -259,4 +259,11 @@ describe("Composable", () => {
     assert(instance.mixinMethodInvoked);
   });
 
+  it("skips adding a prototype that is already in the chain", () => {
+    class Base extends Composable {}
+    let Subclass = Base.compose(Composable); // Should be no-op
+    let base = Object.getPrototypeOf(Subclass.prototype);
+    assert.equal(base, Base.prototype);
+  });
+
 });
