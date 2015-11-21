@@ -256,6 +256,15 @@ function compose(base, mixin) {
     createSubclass(base) :
     Object.create(base);
 
+  // Check to make sure we're not extending the base with a prototype that was
+  // already composed into the object's prototype chain.
+  let basePrototype = baseIsClass ? base.prototype : base;
+  let mixinPrototype = mixinIsClass ? mixin.prototype : mixin;
+  if (objectComposedWithPrototype(basePrototype, mixinPrototype)) {
+    // Skip this mixin, return result as is.
+    return result;
+  }
+
   // The "target" here is the target of our property/method composition rules.
   let target;
   if (baseIsClass && mixinIsClass) {
@@ -336,4 +345,21 @@ function getGeneralDescriptorKey(descriptor) {
 function isClass(c) {
   return typeof c === 'function' ||                   // Standard
       (c.prototype && c.prototype.constructor === c); // HTMLElement in WebKit
+}
+
+
+/*
+ * Return true if the given object either has the given prototype on its
+ * chain, or had *copy of* the prototype composed into its chain.
+ */
+function objectComposedWithPrototype(obj, prototype) {
+  if (prototype.constructor === Object) {
+    // The prototype is a plain object.
+    // Only case to defend against is someone trying to mixin Object itself.
+    return (prototype === Object.prototype);
+  }
+  if (obj === prototype || obj instanceof prototype.constructor) {
+    // The prototype was found along the prototype chain.
+    return true;
+  }
 }
