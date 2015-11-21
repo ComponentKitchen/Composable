@@ -1,7 +1,7 @@
-A general-purpose mixin architecture for apps and frameworks
-============================================================
+A general-purpose mixin facility
+================================
 
-The Composable class provides your JavaScript framework or application with a
+The Composable class can provide your JavaScript framework or application with a
 flexible mixin architecture. Composable takes the form of a general-purpose
 factory for composing classes and objects with mixins. You can configure its
 behavior through *composition rules*: functions that run at class creation time
@@ -19,19 +19,19 @@ Features:
 3. Supports both implicit and and explicit means of resolving conflicts in
    property and method names. Implicit resolutions provide good default
    behavior, and explicit resolutions let you accommodate novel situations.
-4. Designed with forthcoming JavaScript features in mind, including class and
-   super keywords in ES6 and decorators in ES7. All features are also available
-   in plain ES5.
+4. Designed with forthcoming JavaScript features in mind, including `class` and
+   `super` keywords in ES6 and decorators in ES7. All features are also
+   available in plain ES5.
 
 
 Issues that come up with mixins
 -------------------------------
 
-Many JavaScript frameworks include a mixin feature in their class factory, but
+Many JavaScript frameworks include a mixin facility in their class factory, but
 the behavior of the resulting composed class varies from framework to framework.
 A critical question is how the framework resolves conflicts in the names of
-properties or methods supplied by mixins. Consider how a typical framework might
-create a class with mixins:
+properties or methods supplied by mixins. Consider how you might create a class
+with mixins in a typical framework:
 
 
     let mixin1 = {
@@ -58,27 +58,34 @@ create a class with mixins:
     instance.foo(); // Returns... what? And what work got performed?
 
 
-Depending on the framework, the invocation of `instance.foo()` might invoke all
-the `foo` implementations, or perhaps just one. If it just invokes one, that
-might be `mixin2.foo()`, because that was the "last writer", or it might be
-`MyClass.foo()`, because that's the base class and perhaps more important. We
-have to wonder not only about what work will be performed, but also about what
-result will be returned. The answer will vary from framework to framework. The
-answer may also depend on the specific *name* of the method in conflict. Some
-frameworks apply one conflict-resolution strategy to methods with special names,
-and a different strategy to other methods.
+The base class and the two mixins all define a method called `foo()`, but we
+don't know what will happen when we invoke that method:
 
-Another thing we have to wonder about here is what other side effects this
-framework's `createClass()` factory performs. Most frameworks will do work in
-such a method beyond just applying mixins. That black-box approach makes class
-creation feel magic, hampers understanding, and may complicate debugging.
+* Depending on the framework, the invocation of `instance.foo()` might invoke
+  all the `foo` implementations, or perhaps just one. If it just invokes one,
+  that might be `mixin2.foo()`, because that was the "last writer", or it might
+  be `MyClass.foo()`, because that's the base class and perhaps more important.
+
+* We have to wonder not only about what work will be performed, but also about
+  what result will be returned. The answer will vary from framework to
+  framework.
+
+* The answer may also depend on the specific *name* of the method in conflict.
+  Some frameworks apply one conflict-resolution strategy to methods with special
+  names (for example, component lifecycle methods), and a different strategy to
+  other methods.
+
+* We also have to wonder about what other side effects this framework's
+  `createClass()` factory performs. Most frameworks will do more work than just
+  applying mixins. That black-box approach makes class creation feel magic,
+  hampers understanding, and may complicate debugging.
 
 
 Simple example using Composable
 -------------------------------
 
-The Composable class attempts to address the above issues with mixins. A very
-basic example:
+The Composable class attempts to provide a firmer foundation for working with
+mixins. A very basic example:
 
 
     class MyClass {
@@ -97,18 +104,18 @@ basic example:
 
 
 The `Composable.compose` method does nothing but compose behavior — it has no
-side effects, it does not destructively modify any classes. It just returns a
-new class with the desired behavior. It has no relation to any specific
+side effects, and it does not destructively modify any classes. It just returns
+a new class with the desired behavior. It has no relation to any specific
 framework, and in fact this approach could be made to work with many frameworks.
 
 The `compose` method works by extending a JavaScript prototype chain with
 a copy of the given mixin(s). In this case, `compose` creates the chain:
 
 
-    instance --> MyClassWithMixin (mixin copy) --> MyClass --> Object
+    instance → MyClassWithMixin (mixin copy) → MyClass → Object
 
 
-The original base MyClass is left untouched.
+The original base MyClass and the original mixin are left untouched.
 
 
 Bases and mixins can be objects or classes
@@ -133,15 +140,15 @@ So the above example could also have been written:
     let MyClassWithMixin = Composable.compose.call(MyClass, Mixin);
 
 
-The only thing that's special about composing classes vs objects comes up
-if you ask `compose` to compose a base class with a mixin class. In that case,
-`compose` will not only extend the prototype chain as described above, but it
-will also copy any static methods on the mixin class to the new subclass.
+If you ask `compose` to compose a base class with a mixin class, it will not
+only extend the prototype chain as described above, but it will also copy any
+static methods from the mixin class to the new subclass.
 
-The remainder of this documentation will define mixins as classes, but whether
-you decide to do that is a matter of taste. One advantage of defining mixins as
+The remainder of this documentation will define mixins as classes. Whether you
+decide to do that is a matter of taste. One advantage of defining mixins as
 classes is that it makes the mixin a first-class object. You could, for example,
-use `new Mixin()` to instantiate the mixin class and get a new object.
+use `new Mixin()` to instantiate the mixin class and get a new object. The
+`class` syntax also conveys an intention to package behavior.
 
 
 Composition rules
@@ -149,8 +156,8 @@ Composition rules
 
 In the above example, Composable resolved a conflict between a mixin and base
 class method that both had the name `foo`. To do this, Composable applied a
-default rule for resolving such a conflict. Let's look at how this rule was
-applied, and how you can configure Composable's behavior for different
+default composition rule for resolving such a conflict. Let's look at how this
+rule was applied, and how you can configure Composable's behavior for different
 situations.
 
 
@@ -162,29 +169,30 @@ to a prototype chain. In the example above, at the point a copy of `mixin` is
 added to the chain, there are two `foo()` methods along the chain:
 
 
-    MyClassWithMixin -->  MyClass       --> Object
+    MyClassWithMixin →    MyClass       → Object
     Mixin.foo()           MyClass.foo()
 
 
-We can generalize this to say that Composable is considering the pivotal moment
-when a new prototype is being added at the head of a prototype chain.
+We can generalize this by just thinking about the mixin being composed in
+as the head of a prototype chain, and the set of base classes along the existing
+chain as constituting the tail. In the abstract:
 
 
     New prototype at      Existing prototype chain becomes
     head of chain:        the tail of the new chain:
 
-    Mixin -->             Base1 --> Base2 --> Base3 --> ... --> Object
-    foo()                           foo()
+    Mixin →               Base1 → Base2 → Base3 → ... → Object
+    foo()                         foo()
 
 
-At this moment, Composable inspects all the properties on the head of the chain
-(that is, on the mixin being composed in). For each property it finds (like
-`foo`), Composable looks at the chain's tail to see if there's a identically-named
-property anywhere along it. The exact point along the tail where the property
-like is immaterial. What matters is that, if a property with the same name
-exists along the tail of the chain, the mixin's implementation at the head of
-the prototype chain will obscure that base implementation. Sometimes that's
-acceptable, but with mixins, that is often not the desired outcome.
+When adding a new head to the chain, Composable inspects all the properties on
+the new head (that is, on the mixin being composed in). For each property it
+finds, like `foo`, Composable looks at the chain's tail to see if there's a
+identically-named `foo` property anywhere along it. The exact point along the
+tail where the property exists is immaterial. All that matters is whether the
+mixin's implementation at the head of the prototype chain will obscure that base
+implementation. Sometimes that's acceptable, but with mixins, that is often not
+the desired outcome.
 
 
 Composition rules
@@ -196,10 +204,10 @@ no custom composition rules are in effect, the default rule will be to compose
 the two `foo()` methods together using a rule called `baseMethodFirst`:
 
 
-  MyClassWithMixin -->    MyClass       --> Object
-  composed foo()          MyClass.foo()
-    calls MyClass.foo()
-    then  Mixin.foo()
+    MyClassWithMixin →      MyClass       → Object
+    composed foo()          MyClass.foo()
+      calls MyClass.foo()
+      then  Mixin.foo()
 
 
 Calling `foo()` on an instance of MyClassWithMixin will invoke the composed
@@ -253,15 +261,14 @@ Specifying composition rules with ES7 decorators
 ------------------------------------------------
 
 One concise way to describe and think about specifying composition rules is
-with ES7 decorators. These are still being finalized, but the core idea is
-that annotations on object methods and properties can cause functions called
-decorators to run. These are able to retroactively edit the definition for
-the property or method in question.
+with ES7 decorators. Language support for decorators is still being designed,
+but the core idea is that annotations on object methods and properties can cause
+functions called decorators to run. These are able to retroactively edit the
+definition for the property or method in question.
 
-While decorators are not, at the point this is being written, a standard
-JavaScript feature, they nevertheless provide a good way of thinking about
-how you can specify a composition rule. Using decorators, you can override
-Composable's default composition rules.
+While decorators are not yet a standard JavaScript feature, they nevertheless
+provide a good way of thinking about how you can specify a composition rule.
+Using decorators, you can override Composable's default composition rules.
 
 For example, if you have a mixin that wants to defer to a base implementation
 *if one exists*, you could write:
@@ -281,7 +288,7 @@ For example, if you have a mixin that wants to defer to a base implementation
     let MyClassWithMixin = Composable.compose.call(MyClass, Mixin);
 
     let instance = new MyClassWithMixin();
-    instance.foo // Returns "Mixin", since base value is undefined
+    instance.foo // Returns "Mixin", since base value is initially undefined
 
     instance.foo = "Hello";
     instance.foo // Returns "Hello", since base value is now defined
@@ -289,16 +296,24 @@ For example, if you have a mixin that wants to defer to a base implementation
 
 Because the `preferBaseResult` rule was specified with the `@Composable.rule`
 decorator, the Composable class resolved the name conflict using that rule.
-Why is that useful? Here, the base MyClass defines a property foo that may or
-may not be set. The mixin wants to provide a default value for that property
+Why is that rule useful? Here, the base MyClass defines a property foo that may
+or may not be set. The mixin wants to provide a default value for that property
 that is only used if the property value is currently undefined.
+
+Such rules are particularly valuable when composing mixins on top of a wide
+variety of base classes. Some of those base classes may implement a method in
+the mixin, while others may not. This level of flexility goes beyond what's
+possible in classical inheritance, where a given subclass can only extend the
+behavior of a single inheritance chain. In contrast, mixins defined using
+Composable can be applied to multiple base classes.
 
 
 Using decorators in ES6/5
 -------------------------
 
-Until the `@decorator` syntax is widely available, you can also use a helper
-function provided to manually apply decorators:
+Until the `@decorator` syntax becomes widely available, you can also use an
+helper function called `Composable.decorate()` to manually apply decorators in
+ES6/5:
 
 
     class Mixin {
@@ -308,27 +323,32 @@ function provided to manually apply decorators:
       foo: Composable.rule(Composable.rules.preferBaseResult)
     });
 
-This has the same effect as the applying the `@Composable.rule` decorator. (You
-can use this general helper function to apply any function with the decorator
-signature, not just composition rules.)
+
+This has the same effect as the `@Composable.rule` syntax shown above. Note
+that you can use the `Composable.decorate()` helper function to apply any
+function with the decorator signature, not just composition rules.
 
 
 Rules are decorators (applied at class composition time)
 --------------------------------------------------------
 
-If you want to create your own composition rule, you simply need to define
-a function that has the decorator signature:
+To create your own composition rule, define a function that has the decorator
+signature:
+
 
     function decorator(target, key, descriptor) {
     }
 
-where:
+
+where
 
 * `target` is the head of the prototype chain
 * `key` is the name of the method both base and mixin share
 * `descriptor` is the property descriptor for the method
 
-For example, the implementation of `preferBaseResult` is
+For example, a simple implementation of `preferBaseResult` that supports
+methods (not getter/setter properties) is:
+
 
     // Standard rule: return base's result if truthy, otherwise mixin result.
     Composable.rules.preferBaseResult = (target, key, descriptor) => {
@@ -339,6 +359,11 @@ For example, the implementation of `preferBaseResult` is
             || mixinImplementation.apply(this, arguments);
       }
     };
+
+
+Note that your composition rule will only be invoked if a name conflict actually
+exists. If someone applies your rule to a property, but no naming conflict
+exists, the rule will not be invoked.
 
 
 Manipulating prototype chains with Composable
@@ -373,22 +398,22 @@ that in several ways. The simplest is to derive your base class from Composable:
 The prototype chain looks like this:
 
 
-    instance --> MyClass --> MyBaseClass --> Composable --> Object
+    instance → MyClass → MyBaseClass → Composable → Object
 
 
 This means that MyBaseClass gains Composable's `compose` method. This allows
-the more concise `MyBaseClass.compose()` syntax instead of the more verbose
-`Composable.compose.call()` syntax.
+the more concise `MyBaseClass.compose(...)` syntax instead of the more verbose
+syntax, `Composable.compose.call(MyBaseClass, ...)`.
 
 
 Make anything composable
 ------------------------
 
 Composable will happily mix anything into a prototype chain — including
-*itself*. This is useful if you're working with a base class defined elsewhere
-and can't (or don't want to) make that particular base class Composable.
+itself. This is useful if you're working with a base class defined elsewhere
+and can't, or don't want to, make that particular base class composable.
 Suppose you are working with a Thing class defined elsewhere, and you want to
-create a variant of Thing with a `compose` method:
+create a composable variant of Thing that supports mixins:
 
 
     import Thing from 'some/external/dependency.js';
@@ -399,22 +424,20 @@ create a variant of Thing with a `compose` method:
     // ComposableThing now embodies composable Thing objects.
     // You can now use that to compose new classes using mixins.
     class Mixin { ... }
-    class ThingSubclass extends ComposableThing.compose(Mixin) {
-      ...
-    }
+    let ThingSubclass extends ComposableThing.compose(Mixin);
 
 
 The resulting prototype chain looks like:
 
 
-    ThingSubclass --> Mixin --> ComposableThing --> Thing --> Object
+    ThingSubclass → Mixin → ComposableThing → Thing → Object
 
 
 Redefining a class to include mixins
 ------------------------------------
 
-In most of the above examples, the output of `compose` is exposed to the world.
-For example, a class MyClass is composed with Mixin to create MyClassWithMixin.
+In most of the above examples, the output of `compose` is a new class. For
+example, a class MyClass is composed with Mixin to create MyClassWithMixin.
 
 
     class MyClass extends Composable {
@@ -438,7 +461,7 @@ enough to redefine a class to include a mixin:
       foo() { return "Mixin"; }
     }
 
-    MyClass = MyClass.compose(Mixin);
+    MyClass = MyClass.compose(Mixin);   // Redefine MyClass to include Mixin
 
     let instance = new MyClass();
     instance.foo(); // Returns "Mixin"
@@ -447,7 +470,7 @@ enough to redefine a class to include a mixin:
 This creates the prototype chain:
 
 
-    instance --> MyClass (includes Mixin) --> (original MyClass) --> Object
+    instance → MyClass (includes Mixin) → (original MyClass) → Object
 
 
 Extending a base class composed with mixins
@@ -462,23 +485,23 @@ a concise way to compose mixins:
       foo() { return "Mixin"; }
     }
 
-    class MyClass extends Composable.compose(Mixin) {
+    class MyClass extends Composable.compose(Mixin) {   // Base is an expression
       foo() { return "MyClass"; }
     }
 
     let instance = new MyClass();
-    instance.foo(); // Returns "MyClass", because MyClass is at head of chain
+    instance.foo(); // Returns "MyClass", since MyClass is at head of the chain
 
 
 Because the base class for `extends` is `Composable.compose(Mixin)`, we get
 the following prototype chain:
 
 
-    instance --> MyClass --> (copy of Mixin) --> Composable --> Object
+    instance → MyClass → (copy of Mixin) → Composable → Object
 
 
 Compared to the previous example, the positions of MyClass and Mixin are
-reversed. This is because Mixin was composed into the starting point for
+reversed. This is because here Mixin was composed into the starting point for
 MyClass, rather than composed into MyClass afterwards.
 
 
@@ -500,8 +523,12 @@ also use Composable as a general-purpose class factory in ES5:
     instance.foo() // Returns "Mixin"
 
 
-Example: Applying mixins to HTML element classes
-================================================
+The `compose` call above says: use `Object` as the base class, add in a `foo()`
+method, and then apply a mixin that also has the same method.
+
+
+Example: Mixins for HTML custom elements
+========================================
 
 As one example of how you could use Composable to compose complex behaviors
 from mixins, let's take a quick look at creating a custom HTML element using
