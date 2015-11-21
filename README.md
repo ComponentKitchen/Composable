@@ -559,7 +559,7 @@ Composable and the Custom Elements API.
 When we're done, we've constructed the following prototype chain:
 
 
-    element -> HelloElement -> HelloMixin -> ComposableElement -> HTMLElement
+    element → HelloElement → HelloMixin → ComposableElement → HTMLElement
 
 
 So `element` is an instance of HelloElement composed of behaviors from
