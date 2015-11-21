@@ -174,6 +174,8 @@ const NON_MIXABLE_OBJECT_PROPERTIES = [
   'constructor'
 ];
 
+const ORIGINAL_MIXIN_SYMBOL = Symbol('Original mixin');
+
 
 /*
  * Apply the composition rules in effect for the given object, which lies at
@@ -260,7 +262,8 @@ function compose(base, mixin) {
   // already composed into the object's prototype chain.
   let basePrototype = baseIsClass ? base.prototype : base;
   let mixinPrototype = mixinIsClass ? mixin.prototype : mixin;
-  if (objectComposedWithPrototype(basePrototype, mixinPrototype)) {
+  if (objectHasPrototype(basePrototype, mixinPrototype)
+      || objectHasMixin(basePrototype, mixin)) {
     // Skip this mixin, return result as is.
     return result;
   }
@@ -293,6 +296,11 @@ function compose(base, mixin) {
     // Composable's "super" property.
     target.super = baseIsClass ? base.prototype : base;
   }
+
+  // Keep track of the mixin that was composed in at this point.
+  Object.defineProperty(target, ORIGINAL_MIXIN_SYMBOL, {
+    value: mixin
+  });
 
   // Apply the composition rules in effect at the target.
   applyCompositionRules(target);
@@ -350,9 +358,9 @@ function isClass(c) {
 
 /*
  * Return true if the given object either has the given prototype on its
- * chain, or had *copy of* the prototype composed into its chain.
+ * chain.
  */
-function objectComposedWithPrototype(obj, prototype) {
+function objectHasPrototype(obj, prototype) {
   if (prototype.constructor === Object) {
     // The prototype is a plain object.
     // Only case to defend against is someone trying to mixin Object itself.
@@ -362,4 +370,22 @@ function objectComposedWithPrototype(obj, prototype) {
     // The prototype was found along the prototype chain.
     return true;
   }
+  return false;
+}
+
+
+/*
+ * Return true if the given mixin was used to create any of the prototypes on
+ * on the object's prototype chain.
+ */
+function objectHasMixin(obj, mixin) {
+  if (!obj) {
+    return false;
+  }
+  let descriptor = Object.getOwnPropertyDescriptor(obj, ORIGINAL_MIXIN_SYMBOL);
+  if (descriptor && descriptor.value === mixin) {
+    // The given mixin was, in fact, composed into this prototype chain.
+    return true;
+  }
+  return objectHasMixin(Object.getPrototypeOf(obj), mixin);
 }

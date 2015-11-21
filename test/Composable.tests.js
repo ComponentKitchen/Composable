@@ -266,11 +266,11 @@ describe("Composable", () => {
     assert(propertyNames.indexOf('compose') < 0);
   });
 
-  // it("skips adding a mixin already composed into the chain", () => {
-  //   let Class1 = Composable.compose(MethodMixin);
-  //   assert(Object.getOwnPropertyNames(Class1.prototype).indexOf('method') >= 0);
-  //   let Class2 = Class1.compose(MethodMixin); // Shouldn't add 2nd copy of mixin
-  //   assert(Object.getOwnPropertyNames(Class2.prototype).indexOf('method') < 0);
-  // });
+  it("skips adding a mixin already composed into the chain", () => {
+    let Class1 = Composable.compose(MethodMixin);
+    assert(Object.getOwnPropertyNames(Class1.prototype).indexOf('method') >= 0);
+    let Class2 = Class1.compose(MethodMixin); // Shouldn't add 2nd copy of mixin
+    assert(Object.getOwnPropertyNames(Class2.prototype).indexOf('method') < 0);
+  });
 
 });
