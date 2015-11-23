@@ -23,6 +23,24 @@ describe("CompositionRules", () => {
     assert(result, 'Subclass');
   });
 
+  it("preferBaseResult invokes base first, returns that result if truthy", () => {
+    let subclass = composeSubclassUsingRule('method', CompositionRules.preferBaseResult);
+    let instance = new subclass();
+    let result = instance.method();
+    assert(instance.baseMethodInvoked);
+    assert(!instance.subclassMethodInvoked);
+    assert(result, 'Base');
+  });
+
+  it("preferMixinResult invokes mixin first, returns that result if truthy", () => {
+    let subclass = composeSubclassUsingRule('method', CompositionRules.preferMixinResult);
+    let instance = new subclass();
+    let result = instance.method();
+    assert(!instance.baseMethodInvoked);
+    assert(instance.subclassMethodInvoked);
+    assert(result, 'Subclass');
+  });
+
 });
 
 
@@ -39,7 +57,7 @@ function createSubclass() {
 function composeSubclassUsingRule(key, rule) {
   let subclass = createSubclass();
   let descriptor = Object.getOwnPropertyDescriptor(subclass.prototype, key);
-  CompositionRules.baseMethodFirst(subclass.prototype, key, descriptor);
+  rule(subclass.prototype, key, descriptor);
   Object.defineProperty(subclass.prototype, key, descriptor);
   return subclass;
 }
