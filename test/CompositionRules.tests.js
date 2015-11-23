@@ -46,6 +46,21 @@ describe("CompositionRules", () => {
     assert(result, 'Hello');
   });
 
+  it("preferBaseGetter invokes base getter first, returns that result if truthy", () => {
+    let subclass = composeSubclassUsingRule('property', CompositionRules.preferBaseGetter);
+    let instance = new subclass();
+    let result = instance.property;
+    assert(instance.baseGetterInvoked);
+    assert(instance.subclassGetterInvoked);
+    assert(result, 'Subclass');
+    let instance2 = new subclass();
+    instance2.property = 'Hello';
+    let result2 = instance2.property;
+    assert(instance2.baseGetterInvoked);
+    assert(!instance2.subclassGetterInvoked);
+    assert(result2, 'Hello');
+  });
+
   it("preferBaseResult invokes base first, returns that result if truthy", () => {
     let subclass = composeSubclassUsingRule('method', CompositionRules.preferBaseResult);
     let instance = new subclass();

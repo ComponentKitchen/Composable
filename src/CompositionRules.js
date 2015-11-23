@@ -90,7 +90,7 @@ export function preferBaseResult(target, key, descriptor) {
   descriptor.value = function() {
     return baseImplementation.apply(this, arguments)
         || mixinImplementation.apply(this, arguments);
-  }
+  };
 }
 
 
@@ -100,7 +100,40 @@ export function preferBaseResult(target, key, descriptor) {
  * getter's result is returned. Setter is invoked base first, then mixin.
  */
 export function preferBaseGetter(target, key, descriptor) {
+  let mixinGetter = descriptor.get;
+  let mixinSetter = descriptor.set;
+  let baseDescriptor = getBaseDescriptor(target, key);
+  let baseGetter = baseDescriptor.get;
+  let baseSetter = baseDescriptor.set;
+  if (mixinGetter && baseGetter) {
+    // Compose getters.
+    descriptor.get = function() {
+      return baseGetter.apply(this) || mixinGetter.apply(this);
+    };
+  }
+  if (mixinSetter && baseSetter) {
+    // Compose setters.
+    descriptor.set = composeFunction(baseSetter, mixinSetter);
+  }
+  completePropertyDefinition(descriptor, baseDescriptor);
+}
 
+
+function completePropertyDefinition(descriptor, baseDescriptor) {
+  if (descriptor.get && !descriptor.set && baseDescriptor.set) {
+    // Mixin has getter but needs a default setter.
+    let baseSetter = baseDescriptor.set;
+    descriptor.set = function(value) {
+      baseSetter.call(this, value);
+    };
+  }
+  if (descriptor.set && !descriptor.get && baseDescriptor.get) {
+    // Mixin has setter but needs a default getter.
+    let baseGetter = baseDescriptor.get;
+    descriptor.get = function() {
+      return baseGetter.call(this);
+    };
+  }
 }
 
 
