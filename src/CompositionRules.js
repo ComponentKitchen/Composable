@@ -30,6 +30,40 @@ export function chainPrototypes(target, key, descriptor) {
 
 
 /*
+ * Helper function to complete a property definition for a mixin.
+ *
+ * Default JavaScript behavior is that a subclass that defines a getter but not
+ * a setter will never have the base class' setter invoked. Similarly, a
+ * subclass that defines a setter but not a getter will never have the base
+ * class' getter invoked.
+ *
+ * For mixins, we want the default behavior to be that, if a mixin only defines
+ * a getter, but the base class defines a setter, we want the mixin to acquire
+ * a default setter than invokes the base setter. Likewise, we want to define
+ * a default getter if none is supplied.
+ *
+ * To carry that out, this helper function rounds out a property definition to
+ * ensure it has a default getter or setter if it needs one.
+ */
+function completePropertyDefinition(descriptor, baseDescriptor) {
+  if (descriptor.get && !descriptor.set && baseDescriptor.set) {
+    // Mixin has getter but needs a default setter.
+    let baseSetter = baseDescriptor.set;
+    descriptor.set = function(value) {
+      baseSetter.call(this, value);
+    };
+  }
+  if (descriptor.set && !descriptor.get && baseDescriptor.get) {
+    // Mixin has setter but needs a default getter.
+    let baseGetter = baseDescriptor.get;
+    descriptor.get = function() {
+      return baseGetter.call(this);
+    };
+  }
+}
+
+
+/*
  * Perform a deep merge of a mixin property on top of a base property.
  */
 // export function deepMerge(target, key, descriptor) {
@@ -119,21 +153,28 @@ export function preferBaseGetter(target, key, descriptor) {
 }
 
 
-function completePropertyDefinition(descriptor, baseDescriptor) {
-  if (descriptor.get && !descriptor.set && baseDescriptor.set) {
-    // Mixin has getter but needs a default setter.
-    let baseSetter = baseDescriptor.set;
-    descriptor.set = function(value) {
-      baseSetter.call(this, value);
-    };
-  }
-  if (descriptor.set && !descriptor.get && baseDescriptor.get) {
-    // Mixin has setter but needs a default getter.
-    let baseGetter = baseDescriptor.get;
+/*
+ * Like preferMixinResult, but for getter/setters. The mixin getter is invoked
+ * first. If it returns a truthy result, that is returned. Otherwise, the base
+ * getter's result is returned. Setter is still invoked base first, then mixin.
+ */
+export function preferMixinGetter(target, key, descriptor) {
+  let mixinGetter = descriptor.get;
+  let mixinSetter = descriptor.set;
+  let baseDescriptor = getBaseDescriptor(target, key);
+  let baseGetter = baseDescriptor.get;
+  let baseSetter = baseDescriptor.set;
+  if (mixinGetter && baseGetter) {
+    // Compose getters.
     descriptor.get = function() {
-      return baseGetter.call(this);
+      return mixinGetter.apply(this) || baseGetter.apply(this);
     };
   }
+  if (mixinSetter && baseSetter) {
+    // Compose setters.
+    descriptor.set = composeFunction(baseSetter, mixinSetter);
+  }
+  completePropertyDefinition(descriptor, baseDescriptor);
 }
 
 
@@ -174,20 +215,12 @@ export function baseMethodFirst(target, key, descriptor) {
  * we have to supply a default setter.
  */
 export function baseSetterFirst(target, key, descriptor) {
+  let mixinSetter = descriptor.set;
   let baseDescriptor = getBaseDescriptor(target, key);
-  if (descriptor.get && !descriptor.set && baseDescriptor.set) {
-    // Need to supply default setter.
-    descriptor.set = function(value) {
-      baseDescriptor.set.call(this, value);
-    };
-  } else if (descriptor.set) {
-    if (!descriptor.get && baseDescriptor.get) {
-      // Need to supply default getter.
-      descriptor.get = function() {
-        return baseDescriptor.get.call(this);
-      };
-    }
+  let baseSetter = baseDescriptor.set;
+  if (mixinSetter && baseSetter) {
     // Compose setters.
-    descriptor.set = composeFunction(baseDescriptor.set, descriptor.set);
+    descriptor.set = composeFunction(baseSetter, mixinSetter);
   }
+  completePropertyDefinition(descriptor, baseDescriptor);
 }

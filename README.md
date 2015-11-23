@@ -244,9 +244,17 @@ The standard composition rules are:
   created with Composable, this is the default behavior only for scalar- or
   plain object-valued properties.
 
+* `preferBaseGetter`: Invokes the base getter first. If that returns a truthy
+  value, that is returned immediately. Otherwise, the result of the mixin getter
+  is returned. Setters are invoked base first, then mixin.
+
 * `preferBaseResult`: This rule invokes the base method first. If that returns
   a truthy value, that is returned immediately. Otherwise, the mixin method is
   invoked, and its result is returned.
+
+* `preferMixinGetter`: Invokes the mixin getter first. If that returns a truthy
+  value, that is returned immediately. Otherwise, the result of the base getter
+  is returned. Setters are invoked base first, then mixin.
 
 * `preferMixinResult`: The converse of the above rule. This rule invokes the
   mixin method first. If that returns a truthy value, that is returned
