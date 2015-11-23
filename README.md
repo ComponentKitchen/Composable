@@ -354,7 +354,7 @@ methods (not getter/setter properties) is:
     Composable.rules.preferBaseResult = (target, key, descriptor) => {
       let mixinImplementation = descriptor.value;
       let baseImplementation = Object.getPrototypeOf(target)[key];
-      descriptor.value = function() {
+      descriptor.value = function() {   // Plain 'function' for correct 'this'
         return baseImplementation.apply(this, arguments)
             || mixinImplementation.apply(this, arguments);
       }
@@ -424,7 +424,7 @@ create a composable variant of Thing that supports mixins:
     // ComposableThing now embodies composable Thing objects.
     // You can now use that to compose new classes using mixins.
     class Mixin { ... }
-    let ThingSubclass extends ComposableThing.compose(Mixin);
+    class ThingSubclass extends ComposableThing.compose(Mixin) {}
 
 
 The resulting prototype chain looks like:
@@ -450,7 +450,7 @@ example, a class MyClass is composed with Mixin to create MyClassWithMixin.
     let MyClassWithMixin = MyClass.compose(Mixin);
 
 
-But maybe you don't want expose both MyClass and MyClassWithMixin. It's easy
+But maybe you don't want to expose both MyClass and MyClassWithMixin. It's easy
 enough to redefine a class to include a mixin:
 
 
@@ -515,9 +515,12 @@ also use Composable as a general-purpose class factory in ES5:
     var mixin = {
       foo() { return "Mixin"; }
     }
-    var MyClass = Composable.compose.call(Object, {
-      foo() { return "MyClass" }
-    }, Mixin);
+    var MyClass = Composable.compose.call(
+      Object,
+      {
+        foo() { return "MyClass" }
+      },
+      Mixin);
 
     var instance = new MyClass();
     instance.foo() // Returns "Mixin"
