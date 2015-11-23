@@ -176,25 +176,24 @@ a new class with the desired behavior. It has no relation to any specific
 framework, and in fact this approach could be made to work with many frameworks.
 
 The `compose` method works by extending a JavaScript prototype chain with
-a copy of the given mixin(s). In this case, `compose` creates the chain:
+a copy of the given mixin(s).  The original base MyClass and the original mixin
+are left untouched, but a new class is created that extends the chain:
 
 
     instance → MyClassWithMixin → MyClass → Object
 
 
-The original base MyClass and the original mixin are left untouched.
+The prototype chain is still working the way it always does in JavaScript: when
+asked to invoke `foo()`, the language engine will start at the head of the chain
+and walk down the chain until it finds a `foo` implementation. All that's
+happened here is that Composable has *composed* the two `foo` implementations
+here to create a single function that invokes both. Composable then adds that
+composed function to the prototype for MyClassWithMixin.
 
-Note that the prototype chain is still working the way it always does in
-JavaScript: when asked to invoke `foo()`, the language engine will start at the
-head of the chain and walk down the chain until it finds a `foo` implementation.
-All that's happened here is that Composable has *composed* the two `foo`
-implementations here to create a single function that invokes both.
-
-It's that composed function Composable adds to the prototype for
-MyClassWithMixin. Invoking `instance.foo()` therefore has the effect of invoking
-`MyClass.foo()`, then `mixin.foo()`, and getting back the result of the latter.
-That composition is just the default behavior of Composable, but as we'll see
-shortly, other composition behaviors are easy to arrange for.
+So invoking `instance.foo()` has the effect of invoking `MyClass.foo()`, then
+`mixin.foo()`, and getting back the result of the latter. That composition is
+just the default behavior of Composable, but as we'll see shortly, other
+composition behaviors are easy to arrange for.
 
 
 Bases and mixins can be objects or classes
@@ -429,8 +428,7 @@ To create your own composition rule, define a function that has the decorator
 signature:
 
 
-    function decorator(target, key, descriptor) {
-    }
+    function decorator(target, key, descriptor) {}
 
 
 where
@@ -631,7 +629,7 @@ use Composable as a general-purpose class factory in ES5:
 
 
     var mixin = {
-      foo() { return "Mixin"; }
+      foo() { return "mixin"; }
     }
     var MyClass = Composable.compose.call(
       Object,
@@ -642,7 +640,7 @@ use Composable as a general-purpose class factory in ES5:
     );
 
     var instance = new MyClass();
-    instance.foo() // Returns "Mixin"
+    instance.foo() // Returns "mixin"
 
 
 The `compose` call above says: use `Object` as the base class, add in a `foo()`
