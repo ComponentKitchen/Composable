@@ -39,6 +39,17 @@ export function chainPrototypes(target, key, descriptor) {
 // }
 
 /*
+ * Helper to return the base descriptor for the indicated key. This is used to
+ * find the specific implementation that would otherwise be overridden by the
+ * mixin.
+ */
+export function getBaseDescriptor(target, key) {
+  let base = Object.getPrototypeOf(target);
+  return getPropertyDescriptor(base, key);
+}
+
+
+/*
  * Like Object.getOwnPropertyDescriptor(), but walks up the prototype chain.
  * This is needed by composition rules, which usually start out by getting
  * the base implementation of a member they're composing.
@@ -69,12 +80,13 @@ export function override(target, key, descriptor) {}
 
 /*
  * Compose methods, invoking base implementation first. If it returns a
- * truthy result, that is returned. Otherwise, the mixin implementation's
- * result is returned.
+ * truthy result, that is returned immediately. Otherwise, the mixin
+ * implementation's result is returned.
  */
 export function preferBaseResult(target, key, descriptor) {
   let mixinImplementation = descriptor.value;
-  let baseImplementation = Object.getPrototypeOf(target)[key];
+  let baseDescriptor = getBaseDescriptor(target, key);
+  let baseImplementation = baseDescriptor.value;
   descriptor.value = function() {
     return baseImplementation.apply(this, arguments)
         || mixinImplementation.apply(this, arguments);
@@ -83,13 +95,24 @@ export function preferBaseResult(target, key, descriptor) {
 
 
 /*
- * Compose methods, invoking mixin implementation first. If it returns a
- * truthy result, that is returned. Otherwise, the base implementation's
+ * Like preferBaseResult, but for getter/setters. The base getter is invoked
+ * first. If it returns a truthy result, that is returned. Otherwise, the mixin
+ * getter's result is returned. Setter is invoked base first, then mixin.
+ */
+export function preferBaseGetter(target, key, descriptor) {
+
+}
+
+
+/*
+ * Compose methods, invoking mixin implementation first. If it returns a truthy
+ * result, that is returned immediately. Otherwise, the base implementation's
  * result is returned.
  */
 export function preferMixinResult(target, key, descriptor) {
   let mixinImplementation = descriptor.value;
-  let baseImplementation = Object.getPrototypeOf(target)[key];
+  let baseDescriptor = getBaseDescriptor(target, key);
+  let baseImplementation = baseDescriptor.value;
   descriptor.value = function() {
     return mixinImplementation.apply(this, arguments)
         || baseImplementation.apply(this, arguments);
@@ -102,7 +125,8 @@ export function preferMixinResult(target, key, descriptor) {
  */
 export function baseMethodFirst(target, key, descriptor) {
   let mixinImplementation = descriptor.value;
-  let baseImplementation = Object.getPrototypeOf(target)[key];
+  let baseDescriptor = getBaseDescriptor(target, key);
+  let baseImplementation = baseDescriptor.value;
   descriptor.value = composeFunction(baseImplementation, mixinImplementation);
 }
 
@@ -117,8 +141,7 @@ export function baseMethodFirst(target, key, descriptor) {
  * we have to supply a default setter.
  */
 export function baseSetterFirst(target, key, descriptor) {
-  let base = Object.getPrototypeOf(target);
-  let baseDescriptor = getPropertyDescriptor(base, key);
+  let baseDescriptor = getBaseDescriptor(target, key);
   if (descriptor.get && !descriptor.set && baseDescriptor.set) {
     // Need to supply default setter.
     descriptor.set = function(value) {

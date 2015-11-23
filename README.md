@@ -353,8 +353,12 @@ methods (not getter/setter properties) is:
     // Standard rule: return base's result if truthy, otherwise mixin result.
     Composable.rules.preferBaseResult = (target, key, descriptor) => {
       let mixinImplementation = descriptor.value;
-      let baseImplementation = Object.getPrototypeOf(target)[key];
-      descriptor.value = function() {   // Plain 'function' for correct 'this'
+      // Use a helper to find the base implementation up the chain.
+      let baseDescriptor = Composable.rules.getBaseDescriptor(target, key);
+      let baseImplementation = baseDescriptor.value;
+      // Compose a function to run base first, then mixin.
+      // Use a plain function() because we don't want to bind to current 'this'.
+      descriptor.value = function() {
         return baseImplementation.apply(this, arguments)
             || mixinImplementation.apply(this, arguments);
       }
