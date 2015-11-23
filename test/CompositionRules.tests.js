@@ -4,10 +4,21 @@ import * as CompositionRules from '../src/CompositionRules';
 
 
 class Base {
+
+  get property() {
+    this.baseGetterInvoked = true;
+    return this._property;
+  }
+  set property(value) {
+    this.baseSetterInvoked = true;
+    this._property = value;
+  }
+
   method() {
     this.baseMethodInvoked = true;
     return 'Base';
   }
+
 }
 
 
@@ -21,6 +32,18 @@ describe("CompositionRules", () => {
     assert(instance.baseMethodInvoked);
     assert(instance.subclassMethodInvoked);
     assert(result, 'Subclass');
+  });
+
+  it("baseSetterFirst invokes base setter, then mixin setter", () => {
+    let subclass = composeSubclassUsingRule('property', CompositionRules.baseSetterFirst);
+    let instance = new subclass();
+    instance.property = 'Hello';
+    assert(instance.baseSetterInvoked);
+    assert(instance.subclassSetterInvoked);
+    let result = instance.property;
+    assert(!instance.baseGetterInvoked);
+    assert(instance.subclassGetterInvoked);
+    assert(result, 'Hello');
   });
 
   it("preferBaseResult invokes base first, returns that result if truthy", () => {
@@ -45,13 +68,22 @@ describe("CompositionRules", () => {
 
 
 function createSubclass() {
-  class Subclass extends Base {
+  return class Subclass extends Base {
+
+    get property() {
+      this.subclassGetterInvoked = true;
+      return 'Subclass';
+    }
+    set property(value) {
+      this.subclassSetterInvoked = true;
+    }
+
     method() {
       this.subclassMethodInvoked = true;
       return 'Subclass';
     }
+
   }
-  return Subclass;
 }
 
 function composeSubclassUsingRule(key, rule) {
