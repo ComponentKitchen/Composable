@@ -23,6 +23,10 @@ Features:
    keyword in ES6 and decorators in ES7. All features are also available in
    plain ES5.
 
+The Composable class can be installed from this repository via npm. Composable
+can then be imported as an ES6 module from `/src/Composable.js`. An ES5-ready
+version can be included from `/dist/Composable.js`.
+
 
 Issues that come up with mixins
 -------------------------------
@@ -148,6 +152,8 @@ Simple example using Composable
 The Composable class attempts to provide a firmer foundation for working with
 mixins. A very basic example:
 
+
+    import Composable from 'path/to/Composable.js';
 
     class MyClass {
       foo() {
