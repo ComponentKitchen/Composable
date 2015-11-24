@@ -142,8 +142,10 @@ ahead of time what base class they will be extending*.
   `super` or not. The mixin may have been applied to a base class that doesn't
   include the property or method defined by the mixin, in which case invoking
   `super` will throw an exception.
-* Determining whether or not to invoke a super implementation is particularly
-  challenging for property getters and setters.
+* Property getters and setters are particularly tricky to implement in a mixin.
+  If a mixin supplies a getter but fails to define a setter, for example, the
+  JavaScript engine will conclude there is no setter available further along the
+  prototype chain.
 
 
 Simple example using Composable
