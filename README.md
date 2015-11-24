@@ -751,8 +751,8 @@ consulted, so the Mixin class doesn't completely override the Base `messages`.
 Instead the Mixin's `messages` and the Base `messages` are merged.
 
 * The `compositionRules` dictionary is itself composed along the prototype
-  chain, so that different levels of the class/mixin hierarchy can contribute
-  default composition rules.
+  chain, so that different classes/mixins can contribute default composition
+  rules.
 
 * When composing a mixin onto a prototype chain, any composition rules defined
   on the mixin supersede default composition rules defined along the prototype
@@ -761,3 +761,62 @@ Instead the Mixin's `messages` and the Base `messages` are merged.
 The ability to define default composition rules lets a framework adopt
 Composable as a mixin architecture, while preserving any special rules the
 framework would like to impose regarding mixin composition.
+
+
+Composition vs inheritance
+==========================
+
+The presence of a `class` keyword or `class A extends B` syntax in these
+examples might be taken as an indication of classical single inheritance. That
+might be problem for people who believe that composition of behavior (such as
+mixins) is superior to classical inheritance. They may feel that inheritance
+leads to complex, brittle systems. Whether or not that claim is true, it's
+important to note that what's going on in the examples above is not classical
+single inheritance.
+
+People from backgrounds in traditional class-oriented languages think of
+JavaScript's prototype chain as synonymous with inheritance, but that's just one
+way to conceptualize JavaScript. The prototype chain is just a dynamic linked
+list — how you want to use it is up to you.
+
+With Composable, we can compose behaviors in arbitrary combinations and orders
+not possible with classical single inheritance. Among other things, this means
+we can apply the same mixin at different points in the "class hierarchy" to
+create results that cannot be achieved with strict inheritance.
+
+Suppose we have two classes, Base1 and Base2, which share no common ancestor
+(aside from Object). We can extend both of those classes with the same mixin:
+
+    class Base1 {}
+    class Base2 {}
+
+    class Mixin {
+      foo() {
+        return "foo";
+      }
+    }
+
+    let ExtendedBase1 = Composable.compose.call(Base1, Mixin);
+    let ExtendedBase2 = Composable.compose.call(Base2, Mixin);
+
+    let obj1 = new ExtendedBase1();
+    let obj2 = new ExtendedBase2();
+
+We now have a *copy* of the Mixin behavior along two different prototype chains:
+
+    obj1 → ExtendedBase1 (copy of Mixin) → Base1 → Object
+    obj2 → ExtendedBase2 (copy of Mixin) → Base2 → Object
+
+Such a structure is not possible in classical single inheritance. Even though
+obj1 and obj2 share no ancestor but Object, we can apply the same method to
+both:
+
+    obj1.foo(); // "foo"
+    obj2.foo(); // "foo" also
+
+This form of composition allows an enormous degree of flexibility in factoring
+code. Each distinct behavior can be packaged as a mixin object or class, and
+then combined in many ways to create a desired set of instantiable classes. This
+permits a good separation of concerns. At the same time, capitalizing on the
+native nature of the JavaScript prototype chain allows your codebase to minimize
+the number of new concepts that must mastered by future maintainers.
