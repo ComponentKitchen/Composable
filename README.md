@@ -698,3 +698,66 @@ When we're done, we've constructed the following prototype chain:
 So `element` is an instance of HelloElement composed of behaviors from
 HTMLElement (so it can render), a ComposableElement (so mixins can be applied),
 HelloMixin (to set its text content).
+
+
+
+Inheriting composition rules from a base class
+==============================================
+
+As discussed earlier, the critical moment of composition comes when a new mixin
+is being added to an existing prototype chain. Both sides of that operation can
+influence composition. The examples of composition rules above have shown rules
+being defined on the mixin. This is the most common case, but Composable also
+allows composition rules to be defined on the prototype chain. Composable allows
+a base class to define inheritable composition rules that are consulted whenever
+that prototype chain is extended.
+
+This is an advanced use of Composable that may be appropriate for application
+frameworks. Suppose we have a framework where many classes inherit from a class
+called Base. All elements that inherit from Base can define a set of string
+messages as a plain object-valued property called `messages`. Normally such a
+property would be overridden in a subclass, but the Base class wants to define
+the default composition behavior is to *merge* the `messages` property.
+
+Rather than using @decorators for this purpose, a base class can define
+a `compositionRules` dictionary that defines default composition rules.
+
+
+    class Base extends Composable {}
+    // Default messages
+    Base.prototype.messages = {
+      greeting: "Hello",
+      parting: "Goodbye"
+    };
+    // Define a default composition rule for the messages property.
+    Base.prototype.compositionRules = {
+      messages: Composition.rules.shallowMerge
+    };
+
+    let mixin = {
+      messages: {
+        greeting: "Have a nice day"
+      }
+    };
+
+    let Subclass = Base.compose(mixin);
+    let instance = new Subclass();
+    instance.messages // { greeting: "Have a nice day", parting: "Goodbye" }
+
+
+The Base class here defines default composition rules that are inherited down
+the prototype chain. When `Base.compose()` is invoked, these default rules are
+consulted, so the Mixin class doesn't completely override the Base `messages`.
+Instead the Mixin's `messages` and the Base `messages` are merged.
+
+* The `compositionRules` dictionary is itself composed along the prototype
+  chain, so that different levels of the class/mixin hierarchy can contribute
+  default composition rules.
+
+* When composing a mixin onto a prototype chain, any composition rules defined
+  on the mixin supersede default composition rules defined along the prototype
+  chain.
+
+The ability to define default composition rules lets a framework adopt
+Composable as a mixin architecture, while preserving any special rules the
+framework would like to impose regarding mixin composition.
