@@ -45,7 +45,7 @@ export function chainPrototypes(target, key, descriptor) {
  * To carry that out, this helper function rounds out a property definition to
  * ensure it has a default getter or setter if it needs one.
  */
-function completePropertyDefinition(descriptor, baseDescriptor) {
+export function completePropertyDefinition(descriptor, baseDescriptor) {
   if (descriptor.get && !descriptor.set && baseDescriptor.set) {
     // Mixin has getter but needs a default setter.
     let baseSetter = baseDescriptor.set;
