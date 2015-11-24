@@ -714,7 +714,7 @@ that prototype chain is extended.
 
 This is an advanced use of Composable that may be appropriate for application
 frameworks. Suppose we have a framework where many classes inherit from a class
-called Base. All elements that inherit from Base can define a set of string
+called Base. All classes that inherit from Base can define a set of string
 messages as a plain object-valued property called `messages`. Normally such a
 property would be overridden in a subclass, but the Base class wants to define
 the default composition behavior is to *merge* the `messages` property.
