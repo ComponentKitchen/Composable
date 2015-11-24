@@ -327,7 +327,8 @@ The standard composition rules are:
 * `chainPrototypes`. This is used to compose object-valued properties. This
   rule sets the prototype of the *object* value of the mixin property to point
   to the object value of the base property. The effect of this is to perform a
-  shallow merge of the two objects, without copying over values.
+  shallow merge of the two objects, without copying over values. Compare with
+  `shallowMerge`, which does copy over values.
 
 * `override`: The mixin's implementation overrides the base implementation.
   This is the standard JavaScript behavior for all object members. For classes
@@ -350,6 +351,10 @@ The standard composition rules are:
   mixin method first. If that returns a truthy value, that is returned
   immediately. Otherwise, the base method is invoked, and its result is
   returned.
+
+* `shallowMerge`: Compose object-valued properties by copying the members of the
+  mixin value over the members of base value. Compare with `chainPrototypes`,
+  which has the same effect, but chains prototypes rather than copying values.
 
 You can define other rules for your application or framework, as discussed
 further on.

@@ -20,14 +20,17 @@ class Base {
   }
 
 }
-
+Base.prototype.value = {
+  a: 'Base',
+  b: 'Base'
+};
 
 
 describe("CompositionRules", () => {
 
   it("baseMethodFirst invokes base first, then mixin", () => {
-    let subclass = composeSubclassUsingRule('method', CompositionRules.baseMethodFirst);
-    let instance = new subclass();
+    let Subclass = composeSubclassUsingRule('method', CompositionRules.baseMethodFirst);
+    let instance = new Subclass();
     let result = instance.method();
     assert(instance.baseMethodInvoked);
     assert(instance.subclassMethodInvoked);
@@ -35,8 +38,8 @@ describe("CompositionRules", () => {
   });
 
   it("baseSetterFirst invokes base setter, then mixin setter", () => {
-    let subclass = composeSubclassUsingRule('property', CompositionRules.baseSetterFirst);
-    let instance = new subclass();
+    let Subclass = composeSubclassUsingRule('property', CompositionRules.baseSetterFirst);
+    let instance = new Subclass();
     instance.property = 'Hello';
     assert(instance.baseSetterInvoked);
     assert(instance.subclassSetterInvoked);
@@ -46,14 +49,23 @@ describe("CompositionRules", () => {
     assert(result, 'Hello');
   });
 
+  it("override invokes mixin but not base", () => {
+    let Subclass = composeSubclassUsingRule('method', CompositionRules.override);
+    let instance = new Subclass();
+    let result = instance.method();
+    assert(!instance.baseMethodInvoked);
+    assert(instance.subclassMethodInvoked);
+    assert.equal(result, 'Subclass');
+  });
+
   it("preferBaseGetter invokes base getter first, returns that result if truthy", () => {
-    let subclass = composeSubclassUsingRule('property', CompositionRules.preferBaseGetter);
-    let instance = new subclass();
+    let Subclass = composeSubclassUsingRule('property', CompositionRules.preferBaseGetter);
+    let instance = new Subclass();
     let result = instance.property;
     assert(instance.baseGetterInvoked);
     assert(instance.subclassGetterInvoked);
     assert(result, 'Subclass');
-    let instance2 = new subclass();
+    let instance2 = new Subclass();
     instance2.property = 'Hello';
     let result2 = instance2.property;
     assert(instance2.baseGetterInvoked);
@@ -62,8 +74,8 @@ describe("CompositionRules", () => {
   });
 
   it("preferMixinGetter invokes mixin getter first, returns that result if truthy", () => {
-    let subclass = composeSubclassUsingRule('property', CompositionRules.preferMixinGetter);
-    let instance = new subclass();
+    let Subclass = composeSubclassUsingRule('property', CompositionRules.preferMixinGetter);
+    let instance = new Subclass();
     let result = instance.property;
     assert(!instance.baseGetterInvoked);
     assert(instance.subclassGetterInvoked);
@@ -71,8 +83,8 @@ describe("CompositionRules", () => {
   });
 
   it("preferBaseResult invokes base first, returns that result if truthy", () => {
-    let subclass = composeSubclassUsingRule('method', CompositionRules.preferBaseResult);
-    let instance = new subclass();
+    let Subclass = composeSubclassUsingRule('method', CompositionRules.preferBaseResult);
+    let instance = new Subclass();
     let result = instance.method();
     assert(instance.baseMethodInvoked);
     assert(!instance.subclassMethodInvoked);
@@ -80,19 +92,29 @@ describe("CompositionRules", () => {
   });
 
   it("preferMixinResult invokes mixin first, returns that result if truthy", () => {
-    let subclass = composeSubclassUsingRule('method', CompositionRules.preferMixinResult);
-    let instance = new subclass();
+    let Subclass = composeSubclassUsingRule('method', CompositionRules.preferMixinResult);
+    let instance = new Subclass();
     let result = instance.method();
     assert(!instance.baseMethodInvoked);
     assert(instance.subclassMethodInvoked);
     assert(result, 'Subclass');
   });
 
+  it("shallowMerge performs a shallow merge of mixin over base value", () => {
+    let Subclass = composeSubclassUsingRule('value', CompositionRules.shallowMerge);
+    let instance = new Subclass();
+    assert.deepEqual(instance.value, {
+      a: 'Subclass',
+      b: 'Base',
+      c: 'Subclass'
+    });
+  });
+
 });
 
 
 function createSubclass() {
-  return class Subclass extends Base {
+  class Subclass extends Base {
 
     get property() {
       this.subclassGetterInvoked = true;
@@ -108,6 +130,11 @@ function createSubclass() {
     }
 
   }
+  Subclass.prototype.value = {
+    a: 'Subclass',
+    c: 'Subclass'
+  };
+  return Subclass;
 }
 
 function composeSubclassUsingRule(key, rule) {

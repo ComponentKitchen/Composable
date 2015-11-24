@@ -2,6 +2,39 @@
  * Standard composition rules
  */
 
+
+/*
+ * Default rule for composing methods: invoke base first, then mixin.
+ */
+export function baseMethodFirst(target, key, descriptor) {
+  let mixinImplementation = descriptor.value;
+  let baseDescriptor = getBaseDescriptor(target, key);
+  let baseImplementation = baseDescriptor.value;
+  descriptor.value = composeFunction(baseImplementation, mixinImplementation);
+}
+
+
+/*
+ * Default rule for composing properties.
+ * We only compose setters, which invoke base first, then mixin.
+ * A defined mixin getter overrides a base getter.
+ * Note that, because of the way property descriptors work, if the mixin only
+ * defines a setter, but not a getter, we have to supply a default getter that
+ * invokes the base getter. Similarly, if the mixin just defines a getter,
+ * we have to supply a default setter.
+ */
+export function baseSetterFirst(target, key, descriptor) {
+  let mixinSetter = descriptor.set;
+  let baseDescriptor = getBaseDescriptor(target, key);
+  let baseSetter = baseDescriptor.set;
+  if (mixinSetter && baseSetter) {
+    // Compose setters.
+    descriptor.set = composeFunction(baseSetter, mixinSetter);
+  }
+  completePropertyDefinition(descriptor, baseDescriptor);
+}
+
+
 /*
  * Take two functions and return a new composed function that invokes both.
  * The composed function will return the result of the second function.
@@ -62,15 +95,6 @@ export function completePropertyDefinition(descriptor, baseDescriptor) {
   }
 }
 
-
-/*
- * Perform a deep merge of a mixin property on top of a base property.
- */
-// export function deepMerge(target, key, descriptor) {
-//   let mixinValue = descriptor.value;
-//   let baseValue = Object.getPrototypeOf(target)[key].value;
-//   descriptor.value = 'merged'; // merge(baseValue, mixinValue);
-// }
 
 /*
  * Helper to return the base descriptor for the indicated key. This is used to
@@ -195,32 +219,24 @@ export function preferMixinResult(target, key, descriptor) {
 
 
 /*
- * Default rule for composing methods: invoke base first, then mixin.
+ * Perform a shallow merge of a mixin property on top of a base property.
  */
-export function baseMethodFirst(target, key, descriptor) {
-  let mixinImplementation = descriptor.value;
+export function shallowMerge(target, key, descriptor) {
+  let mixinValue = descriptor.value;
   let baseDescriptor = getBaseDescriptor(target, key);
-  let baseImplementation = baseDescriptor.value;
-  descriptor.value = composeFunction(baseImplementation, mixinImplementation);
+  let baseValue = baseDescriptor.value;
+  let result = {};
+  copyProperties(baseValue, result);
+  copyProperties(mixinValue, result);
+  descriptor.value = result;
 }
 
 
 /*
- * Default rule for composing properties.
- * We only compose setters, which invoke base first, then mixin.
- * A defined mixin getter overrides a base getter.
- * Note that, because of the way property descriptors work, if the mixin only
- * defines a setter, but not a getter, we have to supply a default getter that
- * invokes the base getter. Similarly, if the mixin just defines a getter,
- * we have to supply a default setter.
+ * Helper function to copy properties from one object to another.
  */
-export function baseSetterFirst(target, key, descriptor) {
-  let mixinSetter = descriptor.set;
-  let baseDescriptor = getBaseDescriptor(target, key);
-  let baseSetter = baseDescriptor.set;
-  if (mixinSetter && baseSetter) {
-    // Compose setters.
-    descriptor.set = composeFunction(baseSetter, mixinSetter);
+function copyProperties(source, destination) {
+  for (let key in source) {
+    destination[key] = source[key];
   }
-  completePropertyDefinition(descriptor, baseDescriptor);
 }
