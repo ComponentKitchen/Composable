@@ -332,7 +332,7 @@ function createSubclass(base) {
   //   class subclass extends base {}
   //
   // However, until that's resolved, we just construct the class ourselves.
-  function subclass() {};
+  function subclass() {}
   Object.setPrototypeOf(subclass, base);
   Object.setPrototypeOf(subclass.prototype, base.prototype);
   return subclass;
