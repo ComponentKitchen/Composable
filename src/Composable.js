@@ -295,6 +295,20 @@ function compose(base, mixin) {
     // Save a reference to the superclass/super-object. See the comments on
     // Composable's "super" property.
     target.super = baseIsClass ? base.prototype : base;
+
+    if (baseIsClass) {
+      // One limitation of defining a class dynamically is that we can't
+      // programmatically determine the real name of the constructor. For all
+      // classes we create, the constructor will be called "subclass". That's
+      // unhelpful when debugging. As a partial fix, we dynamically overwrite
+      // the constructor's "name" property. That won't update the name shown
+      // in the debugger in all places, but is at least inspectable in the
+      // debug console.
+      Object.defineProperty(result, 'name', {
+        configurable: true,
+        value: mixin.name
+      });
+    }
   }
 
   // Keep track of the mixin that was composed in at this point.
