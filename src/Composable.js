@@ -188,7 +188,7 @@ function applyCompositionRules(obj) {
   let ownCompositionRules = obj.hasOwnProperty('_compositionRules') ?
     obj._compositionRules :
     {};
-  let inheritedCompositionRules = obj.compositionRules;
+  let inheritedCompositionRules = obj.compositionRules || {};
   let defaultCompositionRules = Composable.prototype.compositionRules;
 
   // For each property name, see if the base has a property with the same name.
